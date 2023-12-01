@@ -3,21 +3,19 @@ const { dlAudio } = require("youtube-exec");
 const fs = require("fs");
 const path = require("path");
 const ffmpeg = require("fluent-ffmpeg");
+const cors = require("cors");
 
 const app = express();
 const port = 3000;
 
+// Enable CORS for all routes
+app.use(cors());
+
 // Define a route to handle the audio conversion and download
 app.get("/convert", async (req, res) => {
   try {
-    // Get the YouTube link from the request or read it from a file, as you prefer
-    // const link = req.query.url || getLink();
     const link = req.query.url;
-
-    // Use youtube-exec to download the audio
     const filePath = await downloadAudio(link);
-
-    // Send the downloaded audio file as a response
     sendAudioFile(res, filePath);
   } catch (error) {
     console.error("Error:", error.message);
@@ -25,14 +23,19 @@ app.get("/convert", async (req, res) => {
   }
 });
 
+// Define a route that returns "Hello World" HTML
+app.get("/test", (req, res) => {
+  res.send("<h1>Hello World!</h1>");
+});
+
 function sendAudioFile(res, filePath) {
   const fileStream = fs.createReadStream(filePath);
 
   const timeout = setTimeout(() => {
     console.error("Sending file timed out");
-    fileStream.destroy(); // Close the file stream
+    fileStream.destroy();
     res.status(500).send("Sending file timed out");
-  }, 60000); // 60 seconds timeout
+  }, 60000);
 
   res.setHeader("Content-Type", "audio/mpeg");
   res.setHeader("Content-Disposition", "attachment; filename=audio.mp3");
@@ -40,10 +43,10 @@ function sendAudioFile(res, filePath) {
   fileStream.pipe(res);
 
   fileStream.on("close", () => {
-    clearTimeout(timeout); // Clear the timeout when the file stream is closed
+    clearTimeout(timeout);
     console.log("Audio file sent successfully!");
-    deleteFile(filePath); // Delete the file after sending
-    res.end(); // Signal the end of the response
+    deleteFile(filePath);
+    res.end();
   });
 
   fileStream.on("error", (err) => {
@@ -53,7 +56,6 @@ function sendAudioFile(res, filePath) {
   });
 
   res.on("finish", () => {
-    // This event is emitted when the response has been sent
     console.log("Response sent successfully!");
   });
 }
@@ -67,35 +69,26 @@ function deleteFile(filePath) {
   }
 }
 
-// function getLink() {
-//   const link = fs.readFileSync("link.txt", "utf-8");
-//   const lines = link.split(/\r?\n/);
-//   const linkStr = lines[0];
-//   return linkStr;
-// }
-
 async function downloadAudio(link) {
   try {
-    const downloadPath = path.join(__dirname, "downloads"); // Set your desired download path
+    const downloadPath = path.join(__dirname, "downloads");
     await dlAudio({
       url: link,
       folder: downloadPath,
-      // filename: "filename", // optional, default: video title
       quality: "best",
     });
     console.log("Audio downloaded successfully! 🔊🎉");
 
     const files = fs.readdirSync(downloadPath);
-    const filePath = path.join(downloadPath, files[0]); // Assuming there's only one file in the directory
+    const filePath = path.join(downloadPath, files[0]);
 
     return filePath;
   } catch (err) {
     console.error("An error occurred:", err.message);
-    throw err; // Rethrow the error to be handled by the calling function
+    throw err;
   }
 }
 
-// Start the server
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
