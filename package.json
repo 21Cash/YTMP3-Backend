@@ -1,0 +1,17 @@
+{
+  "name": "backend-mp3",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "fluent-ffmpeg": "^2.1.2",
+    "youtube-exec": "^1.0.4",
+    "ytdl-core": "^4.11.5"
+  }
+}
