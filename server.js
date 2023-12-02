@@ -7,7 +7,7 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 
 app.get("/test", (req, res) => {
-  res.send("<h1>Hello World</h1>");
+  res.status(200).send("<h1>Hello World</h1>");
 });
 
 app.get("/convert", async (req, res) => {
