@@ -1,13 +1,21 @@
 const express = require("express");
 const cors = require("cors");
 const ytdl = require("ytdl-core");
+const { exec } = require("child_process");
+const fs = require("fs");
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
 
+// Create a 'temp' directory if it doesn't exist
+const tempDirectory = "./temp";
+
+if (!fs.existsSync(tempDirectory)) {
+  fs.mkdirSync(tempDirectory);
+}
+
 app.get("/test", (req, res) => {
-  console.log("Status Check, Sent 200 OK");
   res.status(200).send("OK");
 });
 
@@ -22,51 +30,63 @@ app.get("/convert", async (req, res) => {
   try {
     console.log("Fetching video info...");
 
-    // Get video info
     const info = await ytdl.getInfo(url);
-
-    // Encode the title to remove invalid characters
     const encodedTitle = encodeURIComponent(info.videoDetails.title);
-
-    // Log the encoded title
     console.log("Encoded Video title:", encodedTitle);
 
-    // Choose the audio format
     const audioFormat = ytdl.chooseFormat(info.formats, {
       filter: "audioonly",
     });
 
-    // Set headers for the response using the encoded title
-    res.setHeader(
-      "Content-disposition",
-      `attachment; filename=${encodedTitle}.mp3`
-    );
-    res.setHeader("Content-type", "audio/mpeg");
+    console.log("Downloading audio...");
 
-    console.log("Sending audio stream...");
+    const videoReadableStream = ytdl.downloadFromInfo(info, {
+      format: audioFormat,
+    });
 
-    // Pipe the audio data directly to the response
-    ytdl(url, { format: audioFormat })
-      .on("error", (error) => {
-        if (
-          error.message.includes("ERR_SSL_DECRYPTION_FAILED_OR_BAD_RECORD_MAC")
-        ) {
-          console.error("SSL decryption error. Request rejected.");
-          res.status(500).json({ error: "Internal Server Error" });
-        } else {
-          console.error(error);
-          res.status(500).json({ error: "Internal Server Error" });
+    const filePath = `./temp/${encodedTitle}.mp3`;
+
+    videoReadableStream.pipe(fs.createWriteStream(filePath));
+
+    videoReadableStream.on("end", async () => {
+      console.log("Download completed, converting...");
+
+      const ffmpegCommand = `ffmpeg -i "${filePath}" -vn -acodec libmp3lame -y "./temp/converted-${encodedTitle}.mp3"`;
+
+      exec(ffmpegCommand, async (error) => {
+        if (error) {
+          console.error("FFMPEG conversion error:", error);
+          return res.status(500).json({ error: "Internal Server Error" });
         }
-      })
-      .on("end", () => {
-        console.log("Completed");
-      })
-      .pipe(res);
+
+        console.log("Conversion completed, sending file...");
+
+        const convertedFilePath = `./temp/converted-${encodedTitle}.mp3`;
+
+        res.setHeader(
+          "Content-disposition",
+          `attachment; filename=${encodedTitle}.mp3`
+        );
+        res.setHeader("Content-type", "audio/mpeg");
+
+        const fileReadStream = fs.createReadStream(convertedFilePath);
+
+        fileReadStream.pipe(res);
+
+        fileReadStream.on("end", () => {
+          console.log("File sent successfully.");
+          // Optionally, remove temporary files after sending
+          fs.unlinkSync(filePath);
+          fs.unlinkSync(convertedFilePath);
+        });
+      });
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
