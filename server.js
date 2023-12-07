@@ -8,7 +8,7 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 
-// Create a 'temp' directory if it doesn't exist
+// Download Temporary Directory
 const tempDirectory = "./temp";
 
 if (!fs.existsSync(tempDirectory)) {
@@ -51,7 +51,8 @@ app.get("/convert", async (req, res) => {
     videoReadableStream.on("end", async () => {
       console.log("Download completed, converting...");
 
-      const ffmpegCommand = `ffmpeg -i "${filePath}" -vn -acodec libmp3lame -y "./temp/converted-${encodedTitle}.mp3"`;
+      // Using Fast Presets here, Feel Free to remove it and get more better quality
+      const ffmpegCommand = `ffmpeg -i "${filePath}" -vn -acodec libmp3lame -preset fast -y "./temp/converted-${encodedTitle}.mp3"`;
 
       exec(ffmpegCommand, async (error) => {
         if (error) {
@@ -75,6 +76,7 @@ app.get("/convert", async (req, res) => {
 
         fileReadStream.on("end", () => {
           console.log("File sent successfully.");
+
           // Optionally, remove temporary files after sending
           fs.unlinkSync(filePath);
           fs.unlinkSync(convertedFilePath);
