@@ -36,6 +36,7 @@ app.get("/convert", async (req, res) => {
 
     const audioFormat = ytdl.chooseFormat(info.formats, {
       filter: "audioonly",
+      quality: "highestaudio", // Using highest quality audio, change according to purpose
     });
 
     console.log("Downloading audio...");
@@ -51,8 +52,8 @@ app.get("/convert", async (req, res) => {
     videoReadableStream.on("end", async () => {
       console.log("Download completed, converting...");
 
-      // Using Fast Presets here, Feel Free to remove it and get more better quality
-      const ffmpegCommand = `ffmpeg -i "${filePath}" -vn -acodec libmp3lame -preset fast -y "./temp/converted-${encodedTitle}.mp3"`;
+      // I'm using higher bitrate (-b:a 320k), Change it according to your purpose
+      const ffmpegCommand = `ffmpeg -i "${filePath}" -vn -acodec libmp3lame -b:a 320k -y "./temp/converted-${encodedTitle}.mp3"`;
 
       exec(ffmpegCommand, async (error) => {
         if (error) {
