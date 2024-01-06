@@ -97,15 +97,15 @@ app.get("/convert", async (req, res) => {
       format: audioFormat,
     });
 
-    const filePath = `./temp/${videoTitle}.mp3`;
+    const filePath = `./temp/${videoTitle}.${audioFormat.container}`;
 
     videoReadableStream.pipe(fs.createWriteStream(filePath));
 
     videoReadableStream.on("end", async () => {
       console.log("Download completed, converting...");
 
-      const ffmpegCommand = `ffmpeg -i "${filePath}" -vn -acodec libmp3lame -b:a 320k -y "./temp/converted-${videoTitle}.mp3"`;
-
+      // const ffmpegCommand = `ffmpeg -i "${filePath}" -vn -acodec libmp3lame -b:a 320k -y "./temp/converted-${videoTitle}.mp3"`;
+      const ffmpegCommand = `ffmpeg -i "${filePath}" -vn -acodec libmp3lame -b:a 128k "./temp/converted-${videoTitle}.mp3"`;
       exec(ffmpegCommand, async (error) => {
         if (error) {
           console.error("FFMPEG conversion error:", error);
