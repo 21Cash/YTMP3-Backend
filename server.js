@@ -84,6 +84,8 @@ app.get("/convert", async (req, res) => {
 
     const info = await ytdl.getInfo(url);
     const videoTitle = info.videoDetails.title.replace(/[^\w\s.-]/gi, ""); // Remove special characters from title
+
+    console.log(`Title: ${videoTitle}`);
     console.log("Video title:", videoTitle);
 
     const audioFormat = ytdl.chooseFormat(info.formats, {
